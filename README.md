@@ -9,30 +9,26 @@ Dự án này là một mô phỏng thực tế của hệ thống nhúng giám 
 Dưới đây là sơ đồ mô tả cách dữ liệu dịch chuyển từ giả lập GPS đến lúc hiển thị trên bản đồ tương tác:
 
 ```mermaid
-graph LR
+graph TD
 
-    subgraph CParser["C Parser Program (gps_program)"]
-        A["Raw NMEA GPRMC Sentence"]
-        B["GPSPacket_t Structure"]
-        C["Serialized Hex Packet"]
-        D["stdout"]
-
-        A --> B
-        B --> C
-        C --> D
+    subgraph "C Parser Program (gps_program)"
+        A["NMEA GPRMC Raw ($GPRMC...)"] -->|parse_nmea_gprmc| B["Packed GPSPacket_t Struct (15 bytes)"]
+        B -->|serialize_gps_packet| C["30-char Hex String"]
+        C -->|printf & fflush| D["Standard Output (stdout)"]
     end
 
-    subgraph Pipe["Linux Pipe"]
-        D --> E["Python stdin"]
+    subgraph "Linux Pipe Mechanics"
+        D -->|Pipe| E["sys.stdin of Python"]
     end
 
-    subgraph PythonLogger["Python Logger (main.py)"]
-        E --> F["Decode Hex Packet"]
-        F --> G["Extract GPS Fields"]
-        G --> H["gps_route.csv"]
-        G --> I["Coordinate History"]
-        I --> J["Folium Map Generator"]
-        J --> K["vehicle_map.html"]
+    subgraph "Python Logger Program (main.py)"
+        E -->|sys.stdin| F["Read Hex Stream"]
+        F -->|decode_hex_gps| G["Convert Hex to 15-byte Binary"]
+        G -->|struct.unpack| H["Restore GPS Fields"]
+        H -->|Write CSV| I["data/gps_route.csv"]
+        H -->|Store Coordinates| J["coordinate_history"]
+        J -->|Ctrl+C Event| K["Folium Map Generator"]
+        K -->|Generate HTML| L["data/vehicle_map.html"]
     end
 ```
 
